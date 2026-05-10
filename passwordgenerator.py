@@ -95,13 +95,23 @@ def display_password(password):
     strength = check_strength(password)
     print("\n Generated Password:")
     print(f" {password}  ({strength})")
-    # Function to save password to file using os module to get desktop path
-def save_password(password):    
+
+# Function to save password to file using os module to get desktop path
+def save_password(password):
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     file_path = os.path.join(desktop_path, "generated_password.txt")
-    with open(file_path, "w") as file:
-        file.write(password)
-    print(f" Password saved to: {file_path}")
+
+    try:
+        os.makedirs(desktop_path, exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(password)
+        print(f" Password saved to: {file_path}")
+    except OSError:
+        file_path = os.path.join(os.path.expanduser("~"), "generated_password.txt")
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(password)
+        print(f" Desktop not found. Password saved to: {file_path}")
+
 # Main function to control program flow
 def main():
     print("\n ╔═══════════════════════════╗")
