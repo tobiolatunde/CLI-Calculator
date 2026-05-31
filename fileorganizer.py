@@ -1,5 +1,6 @@
 #Import os Module
 from fileinput import filename
+from importlib.resources import files
 import os
 #Import shutil Module
 import shutil
@@ -59,3 +60,84 @@ def move_file(filename, source_folder, category, dry_run=False):
         return(f" Moved: {source_path} -> {dest_path}")
     except Exception as e:
         return(f" Error moving {source_path} to {dest_path}: {e}")
+    #Function to log file movements
+def log_move(log_path, message):
+    timestamp = datetime.now().isoformat()
+    entry = f"{timestamp} - {message}"
+    with open(log_path, 'a') as f:
+        f.write(entry)
+        #Function to print preview of file movements
+def preview_preview(files):
+    print ()
+    print("Preview of file movements:")
+    print(f"{'Source':<40} {'Destination':<40} {'Status'}")
+    for filename in files:
+        category = organize_files(filename)
+        message = move_file(filename, os.path.dirname(filename), category, dry_run=True)
+        print(message)
+        #Function To Print Summary of file movements
+def print_summary(moved, skipped, errors):
+    total = moved + skipped + errors
+    print("\nSummary of file movements:")
+    summary = {}
+    for filename in files:
+        category = organize_files(filename)
+        summary[category] = summary.get(category, 0) + 1
+    for category, count in summary.items():
+        print(f"{category}: {count} files")
+        #Function to organize files in folder
+def run_organizer(folder_path, dry_run=False):
+    log_path = os.path.join(folder_path, "file_organizer.txt")
+    files = scan_folder(folder_path)
+    moved, skipped, errors = 0, 0, 0
+    for filename in files:
+        category = organize_files(filename)
+        message = move_file(filename, folder_path, category, dry_run=dry_run)
+        log_move(log_path, message)
+        if "Moved:" in message:
+            moved += 1
+        elif "Would move:" in message:
+            skipped += 1
+        else:
+            errors += 1
+    print_summary(moved, skipped, errors)
+    #Function to get folder path from user input
+def get_folder_path():
+    while True:
+        raw = input("Enter the folder path to organize (or 'exit' to quit): ").strip()
+        if os.path.isdir(raw):
+            return raw
+        print(f"\nInvalid folder path: {raw}")
+        print("Please enter a valid folder path or type 'exit' to quit.")
+        #Function to get mode (dry run or actual) from user input
+def get_mode():
+    while True:
+        mode = input("Choose mode: [1] Dry Run (preview only) or [2] Actual Move: ").strip()
+        if mode == '1':
+            return True
+        elif mode == '2':
+            return False
+        print("\nInvalid choice. Please enter '1' for Dry Run or '2' for Actual Move.")
+        #Main function to run the file organizer
+def main():
+    print()
+    print("  ╔══════════════════════════════════════╗")
+    print("  ║         CLI FILE ORGANISER           ║")
+    print("  ║         Phase 1 — Python             ║")
+    print("  ╚══════════════════════════════════════╝")
+    print()
+    print("  This program sorts files in a folder into")
+    print("  subfolders by type (Images, Videos, Documents...)")
+
+    folder_path = get_folder_path()
+    dry_run = get_mode()
+    run_organizer(folder_path, dry_run=dry_run)
+    print()
+    again = input("Do you want to organize another folder? (y/n): ").strip().lower()
+    if again == 'y':
+        print()
+        print("File Sorted!")
+        print()
+    #Entry point
+if __name__ == "__main__":
+    main()
