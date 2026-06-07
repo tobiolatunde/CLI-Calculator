@@ -1,6 +1,4 @@
 #Import os Module
-from fileinput import filename
-from importlib.resources import files
 import os
 #Import shutil Module
 import shutil
@@ -30,21 +28,35 @@ def scan_folder(folder_path):
     return files
 
 #Function to organize files by file names
-def organize_files(folder_path):
-    files = scan_folder(folder_path)
-    for file_path in files:
-        _, extension = os.path.splitext(file_path)
-        extension = extension.lower()
+def organize_files(file_path):
+    _, extension = os.path.splitext(file_path)
+    extension = extension.lower()
     for category, extensions in CATEGORIES.items():
         if extension in extensions:
             return category
+    return "Other"
 
-    return "Other"   
 #Function to move files to new folder
-def move_file(filename, source_folder, category, dry_run=False):
-    source_path = os.path.join(source_folder, filename)
+def move_file(file_path, category, dry_run=False):
+    source_folder = os.path.dirname(file_path)
+    filename = os.path.basename(file_path)
     dest_folder = os.path.join(source_folder, category)
-    dest_path   = os.path.join(dest_folder, filename)
+    dest_path = os.path.join(dest_folder, filename)
+
+    # Handle filename conflicts — don't overwrite existing files
+    if os.path.exists(dest_path):
+        name, ext = os.path.splitext(filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{name}_{timestamp}{ext}"
+        dest_path = os.path.join(dest_folder, filename)
+    if dry_run:
+        return f" [DRY RUN] Would move: {file_path} -> {dest_path}"
+    try:
+        os.makedirs(dest_folder, exist_ok=True)
+        shutil.move(file_path, dest_path)
+        return f" Moved: {file_path} -> {dest_path}"
+    except Exception as e:
+        return f" Error moving {file_path} to {dest_path}: {e}"
 
     # Handle filename conflicts — don't overwrite existing files
     if os.path.exists(dest_path):
@@ -68,31 +80,31 @@ def log_move(log_path, message):
         f.write(entry)
         #Function to print preview of file movements
 def preview_preview(files):
-    print ()
+    print()
     print("Preview of file movements:")
-    print(f"{'Source':<40} {'Destination':<40} {'Status'}")
-    for filename in files:
-        category = organize_files(filename)
-        message = move_file(filename, os.path.dirname(filename), category, dry_run=True)
+    print(f"{'Source':<60} {'Status'}")
+    for file_path in files:
+        category = organize_files(file_path)
+        message = move_file(file_path, category, dry_run=True)
         print(message)
-        #Function To Print Summary of file movements
+
+#Function To Print Summary of file movements
 def print_summary(moved, skipped, errors):
     total = moved + skipped + errors
     print("\nSummary of file movements:")
-    summary = {}
-    for filename in files:
-        category = organize_files(filename)
-        summary[category] = summary.get(category, 0) + 1
-    for category, count in summary.items():
-        print(f"{category}: {count} files")
-        #Function to organize files in folder
+    print(f"Total files processed: {total}")
+    print(f"Moved: {moved}")
+    print(f"Dry run previews: {skipped}")
+    print(f"Errors: {errors}")
+
+#Function to organize files in folder
 def run_organizer(folder_path, dry_run=False):
     log_path = os.path.join(folder_path, "file_organizer.txt")
     files = scan_folder(folder_path)
     moved, skipped, errors = 0, 0, 0
-    for filename in files:
-        category = organize_files(filename)
-        message = move_file(filename, folder_path, category, dry_run=dry_run)
+    for file_path in files:
+        category = organize_files(file_path)
+        message = move_file(file_path, category, dry_run=dry_run)
         log_move(log_path, message)
         if "Moved:" in message:
             moved += 1
